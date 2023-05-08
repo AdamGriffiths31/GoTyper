@@ -14,12 +14,12 @@ type Response struct {
 	Words []string `json:"words"`
 }
 
-func GenerateText() string {
+func GenerateText(wordCount int) string {
 	words, err := getRandomWords()
 	if err != nil {
 		return "Unable to generate random words"
 	}
-	words = pickRandomWords(words)
+	words = pickRandomWords(words, wordCount)
 
 	return strings.Join(words, " ")
 }
@@ -50,10 +50,10 @@ func getRandomWords() ([]string, error) {
 	return returnData.Words, nil
 }
 
-func pickRandomWords(words []string) []string {
+func pickRandomWords(words []string, wordCount int) []string {
 	var returnData []string
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	for _, i := range r.Perm(10) {
+	for _, i := range r.Perm(wordCount) {
 		returnData = append(returnData, words[i])
 	}
 

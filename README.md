@@ -1,6 +1,6 @@
 # GoTyper
 
-- [ ] Words per minute calculations
+- [x] Words per minute calculations
 - [x] Generate random words
 - [ ] Local db to save scores
 - [ ] Option to add custom themes
@@ -10,6 +10,10 @@ To change the mode use --mode
 
 ```
 --mode=random
+```
+
+```
+--mode=random --words=20
 ```
 
 ## 0.2.0

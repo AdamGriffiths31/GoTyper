@@ -22,6 +22,7 @@ type Model struct {
 	NextCharStyle      lipgloss.Style
 
 	Stopwatch stopwatch.Model
+	WPM       int
 }
 
 func (m Model) Init() tea.Cmd {
@@ -32,6 +33,13 @@ func (m Model) Init() tea.Cmd {
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if msg.Type == tea.KeyCtrlC {
+			return m, tea.Quit
+		}
+		if msg.Type != tea.KeyRunes && msg.Type != tea.KeySpace {
+			//Not an expected input
+			return m, nil
+		}
 		m.validate(msg.Runes[0])
 	}
 
@@ -56,7 +64,7 @@ func (m Model) View() string {
 	if m.Score < len(m.Text)-1 {
 		sb.WriteString(string(m.Text[m.Score+1:]))
 	}
-	return fmt.Sprintf("%s\n%s\n%s\n\n", m.Progress.ViewAs(m.Percent), sb.String(), m.Stopwatch.View())
+	return fmt.Sprintf("%s\n%s\n%s\nWPM: %v\n\n", m.Progress.ViewAs(m.Percent), sb.String(), m.Stopwatch.View(), m.WPM)
 }
 
 // validate checks the input value is the next correct value
@@ -67,6 +75,7 @@ func (m *Model) validate(input rune) error {
 	}
 
 	m.updateScore()
+	m.updateWPM()
 	m.CompletedText = append(m.CompletedText, input)
 
 	return nil
@@ -78,5 +87,13 @@ func (m *Model) updateScore() {
 	m.Percent = float64(m.Score) / float64(len(m.Text))
 	if m.Score == 1 {
 		m.Stopwatch.Toggle()
+	}
+}
+
+// updateWPM updates the words per minute
+func (m *Model) updateWPM() {
+	words := strings.Count(string(m.Text), " ") + 1
+	if int(m.Stopwatch.Elapsed().Seconds()) > 0 {
+		m.WPM = (words / int(m.Stopwatch.Elapsed().Seconds())) * 60
 	}
 }
