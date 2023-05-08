@@ -4,19 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"strings"
 	"time"
 )
 
+type RandomGenerator struct {
+	logger *log.Logger
+}
+
 type Response struct {
 	Words []string `json:"words"`
 }
 
-func GenerateText(wordCount int) string {
-	words, err := getRandomWords()
+func NewRandomGenerator(logger *log.Logger) *RandomGenerator {
+	return &RandomGenerator{logger: logger}
+}
+
+func (r RandomGenerator) GenerateText(wordCount int) string {
+	words, err := r.getRandomWords()
 	if err != nil {
+		r.logger.Println("Error:", err)
 		return "Unable to generate random words"
 	}
 	words = pickRandomWords(words, wordCount)
@@ -24,7 +34,7 @@ func GenerateText(wordCount int) string {
 	return strings.Join(words, " ")
 }
 
-func getRandomWords() ([]string, error) {
+func (r RandomGenerator) getRandomWords() ([]string, error) {
 	response, err := http.Get("https://monkeytype.com/languages/english_1k.json")
 	if err != nil {
 		return nil, err

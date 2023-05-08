@@ -2,8 +2,11 @@ package types
 
 import (
 	"fmt"
+	"log"
 	"strings"
+	"time"
 
+	"github.com/AdamGriffiths31/Typing/database"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/stopwatch"
 	tea "github.com/charmbracelet/bubbletea"
@@ -11,12 +14,16 @@ import (
 )
 
 type Model struct {
+	logger *log.Logger
+	db     *database.DB
+
 	Progress *progress.Model
 	Percent  float64
 
 	Text          []rune
 	CompletedText []rune
 	Score         int
+	Errors        int
 
 	CompletedTextStyle lipgloss.Style
 	NextCharStyle      lipgloss.Style
@@ -25,7 +32,21 @@ type Model struct {
 	WPM       int
 }
 
+func NewModel(text string, logger *log.Logger, db *database.DB) *Model {
+	bar := progress.NewModel()
+	return &Model{
+		logger:             logger,
+		db:                 db,
+		Text:               []rune(text),
+		Progress:           &bar,
+		CompletedTextStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF00")),
+		NextCharStyle:      lipgloss.NewStyle().Underline(true),
+		Stopwatch:          stopwatch.NewWithInterval(time.Millisecond),
+	}
+}
+
 func (m Model) Init() tea.Cmd {
+	m.logger.Println("Text:", string(m.Text))
 	return m.Stopwatch.Init()
 }
 
@@ -44,6 +65,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.Percent >= 1 {
+		m.db.WriteRecord(int(m.Stopwatch.Elapsed().Milliseconds()))
 		return m, tea.Quit
 	}
 	var cmd tea.Cmd
@@ -64,13 +86,14 @@ func (m Model) View() string {
 	if m.Score < len(m.Text)-1 {
 		sb.WriteString(string(m.Text[m.Score+1:]))
 	}
-	return fmt.Sprintf("%s\n%s\n%s\nWPM: %v\n\n", m.Progress.ViewAs(m.Percent), sb.String(), m.Stopwatch.View(), m.WPM)
+	return fmt.Sprintf("%s\n%s\n%s\nWPM: %v\tErrors: %d\n\n", m.Progress.ViewAs(m.Percent), sb.String(), m.Stopwatch.View(), m.WPM, m.Errors)
 }
 
 // validate checks the input value is the next correct value
 func (m *Model) validate(input rune) error {
 	expected := m.Text[m.Score]
 	if input != expected {
+		m.Errors++
 		return fmt.Errorf("expected '%c', but got '%c'", expected, input)
 	}
 

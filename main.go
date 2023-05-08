@@ -2,40 +2,51 @@ package main
 
 import (
 	"flag"
-	"time"
+	"log"
+	"os"
 
+	"github.com/AdamGriffiths31/Typing/database"
 	randomtext "github.com/AdamGriffiths31/Typing/randomText"
 	"github.com/AdamGriffiths31/Typing/types"
-	"github.com/charmbracelet/bubbles/progress"
-	"github.com/charmbracelet/bubbles/stopwatch"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func main() {
+	file, err := os.OpenFile("logger.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	logger := log.New(file, "Typer: ", log.LstdFlags)
+	logger.Println("Typer has started")
+
+	db := database.NewDatabase(logger)
+	defer db.BadgerDB.Close()
+
 	mode := flag.String("mode", "", "Sets the mode of the program. Options include: random")
 	wordCount := flag.Int("words", 10, "Sets the word count for random mode")
+	scores := flag.Bool("scores", false, "Display the highscores")
 	flag.Parse()
-	flag.PrintDefaults()
+	if *scores {
+		db.ShowScores()
+		return
+	}
+
 	var text string
 	switch *mode {
 	case "random":
-		text = randomtext.GenerateText(*wordCount)
+		rg := randomtext.NewRandomGenerator(logger)
+		text = rg.GenerateText(*wordCount)
 	default:
 		text = "the quick brown fox jumps over the lazy dog"
 	}
 
-	execute(text)
+	execute(text, logger, db)
 }
 
-func execute(text string) {
-	bar := progress.NewModel()
-	program := tea.NewProgram(types.Model{
-		Text:               []rune(text),
-		Progress:           &bar,
-		CompletedTextStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#00FF00")),
-		NextCharStyle:      lipgloss.NewStyle().Underline(true),
-		Stopwatch:          stopwatch.NewWithInterval(time.Millisecond),
-	})
+func execute(text string, logger *log.Logger, db *database.DB) {
+	model := types.NewModel(text, logger, db)
+	program := tea.NewProgram(model)
 	program.Start()
 }
