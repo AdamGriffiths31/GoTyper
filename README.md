@@ -15,6 +15,13 @@ To change the mode use --mode
 ```
 --mode=random --words=20
 ```
+
+```
+--mode=custom --file=exampleText
+```
+
+## 0.4.0
+Added the ability to use a custom text file using --file
 ## 0.3.0
 Added a local database, using [badgerDB](https://github.com/dgraph-io/badger), to save scores.
 ![Example of DB](https://github.com/AdamGriffiths31/GoTyper/blob/main/docs/0.3.0.gif)

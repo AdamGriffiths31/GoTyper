@@ -2,6 +2,8 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -27,6 +29,7 @@ func main() {
 	mode := flag.String("mode", "", "Sets the mode of the program. Options include: random")
 	wordCount := flag.Int("words", 10, "Sets the word count for random mode")
 	scores := flag.Bool("scores", false, "Display the highscores")
+	filePath := flag.String("file", "", "The path to a custom file to load")
 	flag.Parse()
 	if *scores {
 		db.ShowScores()
@@ -38,6 +41,22 @@ func main() {
 	case "random":
 		rg := randomtext.NewRandomGenerator(logger)
 		text = rg.GenerateText(*wordCount)
+	case "custom":
+		if *filePath == "" {
+			fmt.Println("Please enter a file path using --file")
+			logger.Fatal("No path was specified")
+		}
+		file, err := os.Open(*filePath)
+		if err != nil {
+			fmt.Println("unable to load file")
+			logger.Fatal(err)
+		}
+		readValue, err := io.ReadAll(file)
+		if err != nil {
+			fmt.Println("unable to read file contents")
+			logger.Fatal(err)
+		}
+		text = string(readValue)
 	default:
 		text = "the quick brown fox jumps over the lazy dog"
 	}
